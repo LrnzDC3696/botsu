@@ -1,6 +1,14 @@
-# Importing `Client` and `wait_for_interruption` from hata
 from utils import build_duration_string
-from hata import Client, Guild, wait_for_interruption, Embed, Color, DiscordException, ERROR_CODES, COLORS
+from hata import (
+    Client,
+    Guild,
+    wait_for_interruption,
+    Embed,
+    Color,
+    DiscordException,
+    ERROR_CODES,
+    COLORS,
+)
 from hata.ext.slash import P, abort
 from datetime import timedelta as TimeDelta
 from dotenv import load_dotenv
@@ -27,7 +35,7 @@ async def try_notify(client, user, message, guild_channel=None):
     else:
         if guild_channel is not None:
             await client.message_create(guild_channel, message)
-    
+
 
 def check_basic_permission(event, client, user):
     guild = event.guild
@@ -60,6 +68,12 @@ def get_duration(days, hours, minutes, seconds):
 
 
 @Peanuts.interactions(guild=TEST_GUILD)
+async def dm_me(client, event):
+    channel = await event.client.channel_private_create(event.user)
+    await client.message_create(channel, "I dmed you")
+
+
+@Peanuts.interactions(guild=TEST_GUILD)
 async def peanut(event, user: ("user", "To who?")):
     """Gifts a peanut!"""
     return Embed(description=f"{event.user:f} just gifted a peanut to {user:f} !")
@@ -71,12 +85,6 @@ async def ready(client):
 
 
 # -------------------------------------------------------------------------------------
-
-
-@Peanuts.interactions(guild=TEST_GUILD)
-async def dm_me(client, event):
-    channel = await event.client.channel_private_create(event.user)
-    await client.message_create(channel, "I dmed you")
 
 
 @Peanuts.interactions(guild=TEST_GUILD)
@@ -94,9 +102,7 @@ async def mute(
     """Though shaall be in timeout"""
     check_basic_permission(event, client, user)
 
-    total_timeout_duraton = get_duration(
-        days, hours, minutes, seconds
-    )
+    total_timeout_duraton = get_duration(days, hours, minutes, seconds)
     total_duration = build_duration_string(total_timeout_duraton)
 
     await event.client.user_guild_profile_edit(
@@ -104,48 +110,108 @@ async def mute(
     )
 
     if notify:
+        message = (
+            Embed("You have been muted!", reason, COLORS.red)
+            .add_field("Mute duration:", total_duration)
+            .add_field("Reason", reason)
+        )
+
+        await try_notify(client, user, message, event.channel)
+
+    embed = (
+        Embed(
+            title="User Muted",
+            description=f"{user.name} has been muted for {total_duration}.",
+            color=COLORS.red,
+        )
+        .add_field("Reason", reason)
+        .add_field("Notified", "Yes" if notify else "No")
+        .add_field("Muted by", event.user.name)
+        .add_field("Mute Time", total_duration)
+    )
+
+    return embed
+
+
+@Peanuts.interactions(guild=TEST_GUILD)
+async def unmute(
+    client,
+    event,
+    user: ("user", "Who to mute? >:D"),
+    reason: ("str", "Why though?") = None,
+    notify: ("bool", "Should I notify the user?") = False,
+):
+    """Thou shall speak"""
+    check_basic_permission(event, client, user)
+
+    await event.client.user_guild_profile_edit(
+        event.guild, user, timeout_duration=None, reason=reason
+    )
+
+    if notify:
         message = Embed(
-            "You have been muted!",
-            reason,
-            COLORS.red
-        ).add_field("Mute duration:", total_duration
+            "You have been unmuted!", reason, COLORS.get_duration
         ).add_field("Reason", reason)
 
         await try_notify(client, user, message, event.channel)
 
-    embed = Embed(
-        title="User Muted",
-        description=f"{user.name} has been muted for {total_duration}.",
-        color=COLORS.red
-    ).add_field("Reason", reason
-    ).add_field("Notified", "Yes" if notify else "No"
-    ).add_field("Muted by", event.user.name
-    ).add_field("Mute Time", total_duration)
+    embed = (
+        Embed(
+            title="User Unmuted",
+            description=f"{user.name} has been unmuted",
+            color=COLORS.green,
+        )
+        .add_field("Reason", reason)
+        .add_field("Notified", "Yes" if notify else "No")
+        .add_field("Unmuted by", event.user.name)
+    )
 
     return embed
 
-@Peanuts.interactions(guild=TEST_GUILD)
-async def unmute(event, user: ("user", "Who to unmute? >:D")):
-    """thou shall speak"""
-    return "pong"
-
 
 @Peanuts.interactions(guild=TEST_GUILD)
-async def kick(event, user: ("user", "Who to kick? >:D")):
-    """cyaio"""
-    "https://www.astil.dev/project/hata/docs/hata/discord/client/client/Client#guild_user_delete"
-    return "pong"
+async def kick(
+    client,
+    event,
+    user: ("user", "Who to mute? >:D"),
+    reason: ("str", "Why though?") = None,
+    notify: ("bool", "Should I notify the user?") = False,
+):
+    """Thou shall be kicked"""
+    check_basic_permission(event, client, user)
+
+    await client.guild_user_delete(event.guild, user, reason)
+
+    if notify:
+        message = Embed("You have been kicked LMAO!", COLORS.get_duration).add_field(
+            "Reason", reason
+        )
+
+        await try_notify(client, user, message)
+
+    embed = (
+        Embed(
+            title="User Kicked LMAO",
+            description=f"{user.name} has been kicked",
+            color=COLORS.red,
+        )
+        .add_field("Reason", reason)
+        .add_field("Notified", "Yes" if notify else "No")
+        .add_field("Kicked by", event.user.name)
+    )
+
+    return embed
 
 
 @Peanuts.interactions(guild=TEST_GUILD)
-async def ban(event, user: ("user", "Who to ban? >:D")):
+async def ban(client, event, user: ("user", "Who to ban? >:D")):
     """YEEEEEEEEEEEEEEEEEEEEEEEEEEEETTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT!"""
     "https://www.astil.dev/project/hata/docs/hata/discord/client/client/Client#guild_ban_add"
     return "pong"
 
 
 @Peanuts.interactions(guild=TEST_GUILD)
-async def unban(event, user: ("user", "Who to unban? >:D")):
+async def unban(client, event, user: ("user", "Who to unban? >:D")):
     """unyeet."""
     event.client.guild_user_delete(event.guild.id, user)
     return "pong"
