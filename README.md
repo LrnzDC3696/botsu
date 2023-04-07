@@ -17,21 +17,21 @@ servers, and perform actions like sending messages, creating polls, and setting 
 - **Custom Features:** Tailor the bot to suit your server's unique needs with
 custom commands, automated tasks, and event handlers.
 
-## Why Hata Discord Bot?
+## Why use Hata?
 
-- **Easy-to-use:** Hata Discord Bot is built using the Hata library, which\
-provides a simple and intuitive way to interact with the Discord API.
+- **Easy-to-use:** It is built using the Hata, which provides a simple and\
+intuitive way to interact with the Discord API.
 
 - **Powerful and Flexible:** With a wide range of built-in functionalities and\
 customization options, you can easily configure the bot to fit your server's requirements.
 
-- **Open-source and Community-driven:** Hata Discord Bot is open-source, meaning\
+- **Open-source and Community-driven:** Hata is open-source, meaning\
 you can freely modify and distribute it. Contributions from the community are\
 encouraged and welcome!
 
 ## Getting Started
 
-To get started with Botsu using Poetry, follow these simple steps:
+To get started with Botsu, follow these simple steps:
 
 1. Clone this repository to your local machine.
 2. Install Poetry, the Python package manager, by following the instructions at [https://python-poetry.org/docs/#installation](https://python-poetry.org/docs/#installation).
