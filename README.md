@@ -29,9 +29,6 @@ customization options, you can easily configure the bot to fit your server's req
 you can freely modify and distribute it. Contributions from the community are\
 encouraged and welcome!
 
-- **Well-documented:** The bot comes with detailed documentation to help you set\
-up and customize it according to your needs.
-
 ## Getting Started
 
 To get started with Botsu using Poetry, follow these simple steps:
@@ -46,14 +43,7 @@ To get started with Botsu using Poetry, follow these simple steps:
     ```
 
 5. Create a new bot account on the Discord Developer Portal and obtain the bot token.
-6. Replace the placeholder token in the bot's source code with your actual bot token.
-7. Run the bot using Poetry's virtual environment:
-
-    ```bash
-    poetry run python main.py
-    ```
-
-8. Create a .env file in the repository directory with the following format:
+6. Create a .env file in the repository directory with the following format:
 
     ```py
     PEANUTS_BOT="some discord key"
@@ -61,9 +51,9 @@ To get started with Botsu using Poetry, follow these simple steps:
 
     Replace "some discord key" with your actual bot token.
 
-9. Run the bot using Poetry's virtual environment:
+7. Run the bot using Poetry's virtual environment:
 
-    ```py
+    ```bash
     poetry run python main.py
     ```
 
@@ -80,4 +70,3 @@ submitting a pull request.
 Hata Discord Bot is open-source and available under the [MIT License](LICENSE).\
 Feel free to use, modify, and distribute it according to the terms of the license.\
 Join us and take your Discord server to the next level with Hata Discord Bot! 🚀
-
