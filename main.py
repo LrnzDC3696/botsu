@@ -1,4 +1,5 @@
 from utils import build_duration_string
+from random import choice
 from hata import (
     Client,
     Guild,
@@ -79,6 +80,12 @@ async def peanut(event, user: ("user", "To who?")):
     return Embed(description=f"{event.user:f} just gifted a peanut to {user:f} !")
 
 
+@Peanuts.interactions(guild=TEST_GUILD)
+async def badinginator(event, user: ("str", "who?")):
+    """tells if a person is bading or not"""
+    return Embed(description=f"{user} is {'very' if choice((True, False)) else 'not'} bading")
+
+
 @Peanuts.events
 async def ready(client):
     print(f"{client:f} logged in.")
@@ -137,7 +144,7 @@ async def mute(
 async def unmute(
     client,
     event,
-    user: ("user", "Who to mute? >:D"),
+    user: ("user", "Who to unmute? >:D"),
     reason: ("str", "Why though?") = None,
     notify: ("bool", "Should I notify the user?") = False,
 ):
@@ -150,7 +157,7 @@ async def unmute(
 
     if notify:
         message = Embed(
-            "You have been unmuted!", reason, COLORS.get_duration
+            "You have been unmuted!", reason, COLORS.green
         ).add_field("Reason", reason)
 
         await try_notify(client, user, message, event.channel)
@@ -173,7 +180,7 @@ async def unmute(
 async def kick(
     client,
     event,
-    user: ("user", "Who to mute? >:D"),
+    user: ("user", "Who to kick? >:D"),
     reason: ("str", "Why though?") = None,
     notify: ("bool", "Should I notify the user?") = False,
 ):
@@ -183,7 +190,7 @@ async def kick(
     await client.guild_user_delete(event.guild, user, reason)
 
     if notify:
-        message = Embed("You have been kicked LMAO!", COLORS.get_duration).add_field(
+        message = Embed("You have been kicked LMAO!", COLORS.red).add_field(
             "Reason", reason
         )
 
@@ -203,18 +210,76 @@ async def kick(
     return embed
 
 
+# duration
 @Peanuts.interactions(guild=TEST_GUILD)
-async def ban(client, event, user: ("user", "Who to ban? >:D")):
-    """YEEEEEEEEEEEEEEEEEEEEEEEEEEEETTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT!"""
-    "https://www.astil.dev/project/hata/docs/hata/discord/client/client/Client#guild_ban_add"
-    return "pong"
+async def ban(
+    client,
+    event,
+    user: ("user", "Who to ban? >:D"),
+    reason: ("str", "Why though?") = None,
+    notify: ("bool", "Should I notify the user?") = False,
+):
+    """Thou shall be kicked"""
+    check_basic_permission(event, client, user)
+
+    await client.guild_ban_add(event.guild, user, reason=reason)
+
+    if notify:
+        message = Embed("You have been banned LMAO!", COLORS.red).add_field(
+            "Reason", reason
+        )
+
+        await try_notify(client, user, message)
+
+    embed = (
+        Embed(
+            title="User banned LMAO",
+            description=f"{user.name} has been banned",
+            color=COLORS.red,
+        )
+        .add_field("Reason", reason)
+        .add_field("Notified", "Yes" if notify else "No")
+        .add_field("Banned by", event.user.name)
+    )
+
+    return embed
 
 
+# duration
 @Peanuts.interactions(guild=TEST_GUILD)
-async def unban(client, event, user: ("user", "Who to unban? >:D")):
-    """unyeet."""
-    event.client.guild_user_delete(event.guild.id, user)
-    return "pong"
+async def unban(
+    client,
+    event,
+    user: ("user", "Who to unban? >:D"),
+    reason: ("str", "Why though?") = None,
+    notify: ("bool", "Should I notify the user?") = False,
+):
+    """Thou shall be unbanned"""
+    check_basic_permission(event, client, user)
+
+    await client.guild_ban_delete(event.guild, user, reason)
+
+    if notify:
+        message = Embed("You have been unbanned", COLORS.red).add_field(
+            "Reason", reason
+        )
+
+        await try_notify(client, user, message)
+
+    embed = (
+        Embed(
+            title="User unbanned",
+            description=f"{user.name} has been unbanned",
+            color=COLORS.red,
+        )
+        .add_field("Reason", reason)
+        .add_field("Notified", "Yes" if notify else "No")
+        .add_field("Unbanned by", event.user.name)
+    )
+
+    return embed
+
+
 
 
 # -------------------------------------------------------------------------------------
