@@ -3,6 +3,8 @@ from random import choice
 from hata import (
     Client,
     Guild,
+    User,
+    AuditLogEvent,
     wait_for_interruption,
     Embed,
     Color,
@@ -11,7 +13,7 @@ from hata import (
     COLORS,
 )
 from hata.ext.slash import P, abort
-from datetime import timedelta as TimeDelta
+from datetime import timedelta as TimeDelta, datetime
 from dotenv import load_dotenv
 from os import environ
 
@@ -83,7 +85,9 @@ async def peanut(event, user: ("user", "To who?")):
 @Peanuts.interactions(guild=TEST_GUILD)
 async def badinginator(event, user: ("str", "who?")):
     """tells if a person is bading or not"""
-    return Embed(description=f"{user} is {'very' if choice((True, False)) else 'not'} bading")
+    return Embed(
+        description=f"{user} is {'very' if choice((True, False)) else 'not'} bading"
+    )
 
 
 @Peanuts.events
@@ -156,9 +160,9 @@ async def unmute(
     )
 
     if notify:
-        message = Embed(
-            "You have been unmuted!", reason, COLORS.green
-        ).add_field("Reason", reason)
+        message = Embed("You have been unmuted!", reason, COLORS.green).add_field(
+            "Reason", reason
+        )
 
         await try_notify(client, user, message, event.channel)
 
@@ -280,19 +284,150 @@ async def unban(
     return embed
 
 
-
-
 # -------------------------------------------------------------------------------------
 
-ACTION_TYPE = ["All", "Mute", "Kick", "Ban"]
+"""
+WRITE MOD TOP LIST COMMAND
+
+when a user bans / kicks / mutes an other (unique) user, then they get 1 mod score
+this should count the actions done by the mod and the actions done through the bot too
+the actions should be requested from audit logs
+options for filtering: page, action type, months
+
+SHOULD count a user's manual ban & bot ban
+
+page: int
+action type: (require) kick, mute, ban
+months: int
+
+------------- ------------- ------------- -------------
+    
+"""
+
+
+LOG_MAX_DAYS = 45
+
+FLAG_BAN = 1 << 0
+FLAG_KICK = 1 << 1
+FLAG_MUTE = 1 << 2
+FLAG_ALL = FLAG_BAN | FLAG_KICK | FLAG_MUTE
+
+ACTION_TYPES = {
+    "all": FLAG_ALL,
+    "mute": FLAG_MUTE,
+    "kick": FLAG_KICK,
+    "ban": FLAG_BAN,
+}
+
+
+def is_actually_mute(audit_log_entry):
+    changes = audit_log_entry.changes
+
+    if changes is not None:
+        for change in changes:
+            if change.attribute_name == "timed_out_until":
+                if change.after is not None:
+                    return True
+                break
+
+    return False
+
+
+async def process_audit_log(
+    client, guild, days, action_type, event_type, users_action_count
+):
+    async for audit_log_entry in await client.audit_log_iterator(
+        guild, event=event_type
+    ):
+        if audit_log_entry.created_at < days:
+            break
+
+        if event_type == "mute" and not is_actually_mute(audit_log_entry):
+            continue
+
+        user_id = audit_log_entry.user_id
+        user_data = users_action_count.get(user_id, None)
+
+        if user_data is None:
+            users_action_count[user_id] = {action_type: 1, "all": 1}
+
+        elif action_type not in user_data:
+            user_data[action_type] = 1
+            user_data["all"] = 1
+
+        else:
+            user_data[action_type] += 1
+            user_data["all"] += 1
+
+    return users_action_count
 
 
 @Peanuts.interactions(guild=TEST_GUILD)
 async def mod_top_list(
+    client,
     event,
-    action_type: (ACTION_TYPE, "What action do you want to filter") = "All",
+    action_type: (ACTION_TYPES, "What action do you want to filter") = FLAG_ALL,
+    days: P("int", "days", min_value=1, max_value=LOG_MAX_DAYS) = LOG_MAX_DAYS,
 ):
-    pass
+    guild = event.guild
+    days_ago = datetime.utcnow() - TimeDelta(days=days)
+
+    users_action_count = {}
+
+    if action_type & FLAG_MUTE:
+        users_action_count = await process_audit_log(
+            client,
+            guild,
+            days_ago,
+            "mute",
+            AuditLogEvent.member_update,
+            users_action_count,
+        )
+
+    if action_type & FLAG_KICK:
+        users_action_count = await process_audit_log(
+            client,
+            guild,
+            days_ago,
+            "kick",
+            AuditLogEvent.member_kick,
+            users_action_count,
+        )
+
+    if action_type & FLAG_BAN:
+        users_action_count = await process_audit_log(
+            client,
+            guild,
+            days_ago,
+            "ban",
+            AuditLogEvent.member_ban_add,
+            users_action_count,
+        )
+
+    sorted_users = sorted(
+        users_action_count.items(),
+        key=lambda x: sum(x[1].values()),
+        reverse=True,
+    )
+
+    description = ["```py"]
+
+    for n, (user_id, action_counts) in enumerate(sorted_users, 1):
+        name = (await client.user_get(user_id)).full_name
+        values = [str(x) for x in action_counts.values()]
+        description.append("".join([str(n), ".: ", " ".join(values), " ", name]))
+
+    description.append("```")
+    description = "\n".join(description)
+
+    embed = Embed(
+        "Mod Top-List",
+        str(description),
+        COLORS.gold,
+        timestamp=datetime.utcnow(),
+    )
+
+    return embed
 
 
 Peanuts.start()
