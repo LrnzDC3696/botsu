@@ -346,18 +346,10 @@ async def process_audit_log(
             continue
 
         user_id = audit_log_entry.user_id
-        user_data = users_action_count.get(user_id, None)
+        users_action_count = users_action_count.setdefault(user_id, {event_type: 0, "all": 0})
 
-        if user_data is None:
-            users_action_count[user_id] = {action_type: 1, "all": 1}
-
-        elif action_type not in user_data:
-            user_data[action_type] = 1
-            user_data["all"] = 1
-
-        else:
-            user_data[action_type] += 1
-            user_data["all"] += 1
+        users_action_count[event_type] += 1
+        users_action_count["all"] += 1
 
     return users_action_count
 
@@ -422,7 +414,7 @@ async def mod_top_list(
 
     embed = Embed(
         "Mod Top-List",
-        str(description),
+        description),
         COLORS.gold,
         timestamp=datetime.utcnow(),
     )
