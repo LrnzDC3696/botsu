@@ -1,13 +1,12 @@
 from utils import build_duration_string
+from scarletio import ReuAsyncIO
 from random import choice
 from hata import (
     Client,
     Guild,
-    User,
     AuditLogEvent,
     wait_for_interruption,
     Embed,
-    Color,
     DiscordException,
     ERROR_CODES,
     COLORS,
@@ -16,15 +15,20 @@ from hata.ext.slash import P, abort
 from datetime import timedelta as TimeDelta, datetime
 from dotenv import load_dotenv
 from os import environ
+from hata.ext.plugin_loader import register_and_load_plugin
+from helper import files_
 
 load_dotenv()
 BOT_TOKEN = environ["PEANUTS_BOT"]
-SPY_TESTING_GUILD_ID = 1092844476390711326
+# SPY_TESTING_GUILD_ID = 1092844476390711326
+SPY_TESTING_GUILD_ID = 1043895269021991052
 TEST_GUILD = Guild.precreate(SPY_TESTING_GUILD_ID)
 
 Peanuts = Client(BOT_TOKEN, extensions="slash")
 
 MAX_TIMEOUT_DURATION = TimeDelta(28)
+
+register_and_load_plugin('plugins')
 
 
 async def try_notify(client, user, message, guild_channel=None):
@@ -96,6 +100,18 @@ async def ready(client):
 
 
 # -------------------------------------------------------------------------------------
+
+@Peanuts.interactions(guild=TEST_GUILD)
+async def show_photos(
+    client,
+    event,
+):
+    paths = files_["photos"]
+
+    for path in paths:
+        for pat in path:
+            with (await ReuAsyncIO(pat)) as io:
+                message = await client.message_create(event.channel, file=io)
 
 
 @Peanuts.interactions(guild=TEST_GUILD)
@@ -346,7 +362,8 @@ async def process_audit_log(
             continue
 
         user_id = audit_log_entry.user_id
-        users_action_count = users_action_count.setdefault(user_id, {event_type: 0, "all": 0})
+        users_action_count = users_action_count.setdefault(
+            user_id, {event_type: 0, "all": 0})
 
         users_action_count[event_type] += 1
         users_action_count["all"] += 1
@@ -414,7 +431,7 @@ async def mod_top_list(
 
     embed = Embed(
         "Mod Top-List",
-        description),
+        description,
         COLORS.gold,
         timestamp=datetime.utcnow(),
     )
